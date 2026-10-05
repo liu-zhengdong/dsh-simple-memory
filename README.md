@@ -137,7 +137,7 @@ keywords:                  # 可选：字面短语，命中就提醒
 ```bash
 pnpm install
 npm run check     # tsc --noEmit
-npm test          # node --test（92 个用例，含假宿主与客户端接线测试）
+npm test          # node --test（95 个用例，含假宿主、客户端接线与 volatile 配置契约测试）
 npm run build     # tsc -p tsconfig.build.json → lib/
 ```
 
