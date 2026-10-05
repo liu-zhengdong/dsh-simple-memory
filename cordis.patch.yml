@@ -1,0 +1,13 @@
+# 组合包补丁层：profile 的 dsh.profile.bundles 里列出本包时应用。
+- insert:
+    - id: simple-memory
+      name: dsh-simple-memory
+      config:
+        # 全局记忆目录的绝对路径；留空表示只用项目内的 .memory。
+        directory: ''
+        # 从工作目录向上到 git 根，逐层发现 .memory。
+        projectSources: true
+        # 按 frontmatter keywords 命中时提醒。
+        reminders: true
+        # 每轮注入的记忆文本上限（UTF-8 字节）。
+        maxContextBytes: 262144
