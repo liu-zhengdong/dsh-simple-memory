@@ -17,6 +17,33 @@ export interface MemoryConfig {
   maxContextBytes: number;
 }
 
+/**
+ * cosmokit 的 volatile 引用：schemastery `.volatile()` 字段的运行时形状。
+ *
+ * 宿主把这类字段包成一个只有 `get()` 的冻结对象，桌面端设置界面就地把引用换成新值
+ * （插件不重挂载）；写入口 `Symbol.for("cosmokit.volatile.write")` 归宿主独占。
+ */
+export interface VolatileField<T> {
+  get(): T;
+}
+
+/**
+ * 读一个可能被 `.volatile()` 包裹的配置字段。
+ *
+ * 必须每次用到时现读：volatile 引用是对象，当作普通值用不会报错，只会静默拿到
+ * `undefined`（`typeof directory === "string"` 恒假）。
+ */
+export function liveValue<T>(field: T | VolatileField<T>): T {
+  if (
+    typeof field === "object" &&
+    field !== null &&
+    typeof (field as VolatileField<T>).get === "function"
+  ) {
+    return (field as VolatileField<T>).get();
+  }
+  return field as T;
+}
+
 /** Unconfigured global memories live next to memory.json: `<agentDir>/memory`. */
 export function defaultMemoryDirectory(configPath: string): string {
   return join(dirname(configPath), "memory");

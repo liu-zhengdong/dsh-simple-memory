@@ -72,6 +72,25 @@ dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
 
 改这一行会触发插件热替换，不需要重启。
 
+### 桌面端设置界面
+
+桌面版不必手改 YAML，三个入口指向同一张表单：
+
+- **设置 → 插件 → 记忆**：一个独立标签页；
+- **插件页 → dsh-simple-memory** 的配置区；
+- 插件列表里本插件那一行右侧的「配置」。
+
+四个字段都能改，`directory` 旁边有「选择目录…」，点开就是系统目录选择框。保存后写进该
+profile 的 `cordis.patch.yml`（也就是上面那段 YAML），立即生效。
+
+为什么只有这四个字段：宿主设置服务只把 Config 里标成 volatile 的字段暴露出来，本插件
+四个字段都标了。表单控件是按官方外观照抄的——官方明确禁止插件 require
+`@deepseek-ai/dsh-client-*`（那些包随时会变），所以客户端半侧只声明 `slots` 与 `locale`
+两个服务，目录选择走官方给第三方的 `ctx.uiWorkspace.pickDirectory()`。
+
+> `client/client.js` 只在 DSH 启动时扫描一次（只认 `dsh.client.platform` 与
+> `exports["./client"]`），改这个文件要重启 DSH 才生效；改记忆目录本身不用重启。
+
 ## 记忆文件格式
 
 ```markdown
@@ -110,14 +129,15 @@ keywords:                  # 可选：字面短语，命中就提醒
 | `/memory preview` | 本轮的注入文本（索引）与未注入来源 |
 | `/memory help` | 用法 |
 
-命令只在有命令面的宿主里可用（headless 没有）。它是只读的——配置请改 YAML。
+命令只在有命令面的宿主里可用（headless 没有）。它是只读的——改配置请用桌面端设置界面，
+或直接改 YAML。
 
 ## 开发
 
 ```bash
 pnpm install
 npm run check     # tsc --noEmit
-npm test          # node --test（80 个用例，含假宿主接线测试）
+npm test          # node --test（92 个用例，含假宿主与客户端接线测试）
 npm run build     # tsc -p tsconfig.build.json → lib/
 ```
 
@@ -136,3 +156,5 @@ npm run build     # tsc -p tsconfig.build.json → lib/
   它不走插值）。
 - **不 import `@deepseek-ai/*` 类型**：官方包只随 DSH 分发，npm 上的版本与宿主不一致；
   插件用自己的最小结构化类型对接宿主。
+- **客户端半侧也不 import 官方客户端包**：`client/client.js` 只用 `react` 和 `slots`/
+  `locale`/`configForms`/`uiWorkspace` 四个服务，控件按 `--dsw-*` 主题变量照抄。

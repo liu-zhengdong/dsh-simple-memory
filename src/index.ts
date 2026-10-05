@@ -14,7 +14,7 @@
 import Schema from "@deepseek-ai/schemastery";
 import { randomUUID } from "node:crypto";
 import { registerMemoryCommand } from "./command.ts";
-import { DEFAULT_MAX_CONTEXT_BYTES } from "./config.ts";
+import { DEFAULT_MAX_CONTEXT_BYTES, liveValue } from "./config.ts";
 import type {
   AssembleContextLike,
   MessageLike,
@@ -32,21 +32,31 @@ export const inject = ["systemPrompt"];
 
 export interface Config extends PluginConfig {}
 
+/**
+ * 每个字段都标 `.volatile()`：只有 volatile 字段会出现在宿主设置服务的 describe
+ * 里，桌面端「插件」页与「设置 → 插件」页因此能直接改这些值（写进 profile 的
+ * cordis.patch.yml），不必手改 YAML。代价是运行时读到的可能是 volatile 引用而不是
+ * 普通值，所以下面一律经过 `liveValue()`。
+ */
 export const Config = Schema.object({
   directory: Schema.string()
     .default("")
-    .description("全局记忆目录的绝对路径（可写 ~ 开头）；留空表示不使用全局来源"),
+    .description("全局记忆目录的绝对路径（可写 ~ 开头）；留空表示不使用全局来源")
+    .volatile(),
   projectSources: Schema.boolean()
     .default(true)
-    .description("从工作目录向上到 git 根逐层发现 .memory 项目记忆"),
+    .description("从工作目录向上到 git 根逐层发现 .memory 项目记忆")
+    .volatile(),
   reminders: Schema.boolean()
     .default(true)
-    .description("按 frontmatter 的 keywords 命中用户输入或模型文本时提醒"),
+    .description("按 frontmatter 的 keywords 命中用户输入或模型文本时提醒")
+    .volatile(),
   maxContextBytes: Schema.number()
     .default(DEFAULT_MAX_CONTEXT_BYTES)
     .min(1024)
     .max(16 * 1024 * 1024)
-    .description("每轮注入的记忆文本上限（UTF-8 字节）"),
+    .description("每轮注入的记忆文本上限（UTF-8 字节）")
+    .volatile(),
 });
 
 /** runtime context 段名；注入文本的唯一标识。 */
@@ -55,16 +65,20 @@ export const CONTEXT_NAME = "simple-memory";
 export const CONTEXT_ORDER = 9000;
 
 export function apply(ctx: PluginContextLike, config: Config): void {
-  const readConfig = (): PluginConfig => ({
-    directory: typeof config.directory === "string" ? config.directory : "",
-    projectSources: config.projectSources !== false,
-    reminders: config.reminders !== false,
-    maxContextBytes:
-      Number.isSafeInteger(config.maxContextBytes) &&
-      config.maxContextBytes >= 1024
-        ? config.maxContextBytes
-        : DEFAULT_MAX_CONTEXT_BYTES,
-  });
+  // 配置可能被桌面端 UI 就地改写（volatile 引用换值），所以每次现读，不快照。
+  const readConfig = (): PluginConfig => {
+    const directory = liveValue(config.directory);
+    const maxContextBytes = liveValue(config.maxContextBytes);
+    return {
+      directory: typeof directory === "string" ? directory : "",
+      projectSources: liveValue(config.projectSources) !== false,
+      reminders: liveValue(config.reminders) !== false,
+      maxContextBytes:
+        Number.isSafeInteger(maxContextBytes) && maxContextBytes >= 1024
+          ? maxContextBytes
+          : DEFAULT_MAX_CONTEXT_BYTES,
+    };
+  };
   const engine = new MemoryEngine(readConfig);
 
   // ① 兜底：即使下面的 waterfall 没跑成，组装也能拿到上一次算好的文本。
