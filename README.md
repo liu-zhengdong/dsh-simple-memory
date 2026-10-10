@@ -32,11 +32,11 @@
 ## 安装
 
 ```bash
-# 本地 checkout（开发用，pnpm link）
-dsh plugin --profile <profile> add /abs/path/to/dsh-simple-memory
+# 从 GitHub
+dsh plugin --profile <profile> add github:liu-zhengdong/dsh-simple-memory
 
-# 或从 npm
-dsh plugin --profile <profile> add dsh-simple-memory
+# 本地 checkout（开发用）
+dsh plugin --profile <profile> add /abs/path/to/dsh-simple-memory
 ```
 
 包声明了 `dsh.bundle.patch`，添加后包名会被追加进该 profile 的 `dsh.profile.bundles`。
@@ -46,8 +46,8 @@ dsh plugin --profile <profile> add dsh-simple-memory
 dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
 ```
 
-> link 安装不会给插件装依赖。从 git 安装时请先在 checkout 里 `pnpm install`
-> （运行时只依赖 `yaml`）。
+> 本包未发布到 npm，`add dsh-simple-memory` 会失败。
+> `prepare` 脚本会在安装时自动跑 `tsc` 生成 `lib/`。
 
 ## 配置
 
