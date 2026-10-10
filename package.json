@@ -1,6 +1,6 @@
 {
   "name": "dsh-simple-memory",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "把 Markdown 记忆目录接入 DSH：每轮常驻索引，正文按需读取。",
   "type": "module",
   "keywords": [
