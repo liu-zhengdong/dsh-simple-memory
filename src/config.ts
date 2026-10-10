@@ -9,7 +9,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { isAbsolutePath } from "./engine.ts";
 
 export const DEFAULT_MAX_CONTEXT_BYTES = 256 * 1024;
 export interface MemoryConfig {
@@ -119,7 +120,7 @@ export async function loadConfig(path: string): Promise<MemoryConfig> {
       if (
         directory !== null &&
         (typeof directory !== "string" ||
-          !isAbsolute(directory) ||
+          !isAbsolutePath(directory) ||
           /[\x00-\x1f\x7f]/.test(directory))
       ) {
         throw new Error("directory 必须是绝对路径或 null");

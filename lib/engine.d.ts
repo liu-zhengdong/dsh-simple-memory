@@ -9,7 +9,20 @@ export interface PluginConfig {
     reminders: boolean;
     maxContextBytes: number;
 }
-/** 把配置里的目录整理成绝对路径；空串表示不配置。 */
+/**
+ * 判断路径是不是绝对路径。本机判据之外再认 Windows 形式（`C:\...`、`\\server\share`）：
+ * 配置会跟着 profile 走，在 Mac 上写好的文件可能被拷到 Windows 上读，反之亦然，
+ * 只按运行平台判断会让另一侧写好的值在加载时报错。
+ */
+export declare function isAbsolutePath(value: string): boolean;
+/**
+ * 把配置里的目录整理成绝对路径；空串表示不配置。
+ *
+ * 路径要是 Windows 形式（而本机不是 Windows），交给 `win32.resolve` 去规范化：
+ * 本机的 `resolve` 会把 `C:\x` 当成相对段拼到当前工作目录后面，得到一个既不
+ * 存在、又不报错的路径——比直接拒绝更难查。这样该值的本机可读性由后续的目录
+ * 探测去判定，这里只保证形状不被改写。
+ */
 export declare function resolveDirectory(input: string): string | null;
 export declare function memoryConfig(config: PluginConfig): MemoryConfig;
 export interface EngineStatus {

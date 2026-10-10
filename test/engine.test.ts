@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { AgentLike, MessageLike } from "../src/dsh.ts";
-import { MemoryEngine, type PluginConfig } from "../src/engine.ts";
+import { MemoryEngine, resolveDirectory, type PluginConfig } from "../src/engine.ts";
 
 interface FakeAgent {
   agent: AgentLike;
@@ -265,4 +265,31 @@ test("空目录与未配置来源时注入空文本", async () => {
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }
+});
+
+test("异平台写下的绝对路径不被改写、也不被拒绝", () => {
+  // 配置跟着 profile 走：Windows 上写好的值会被同一份配置在 Mac 上读回来。
+  // 曾经这里用本机 path.resolve，把 `C:\...` 当成相对段拼到 cwd 后面，
+  // 得到一个不存在又不报错的路径；而 `/...` 在 Windows 上会被直接判非绝对。
+  const windowsForms = [
+    "C:\\Users\\me\\vault",
+    "D:\\notes",
+    "\\\\server\\share",
+  ];
+  if (process.platform === "win32") {
+    for (const value of windowsForms)
+      assert.equal(resolveDirectory(value), resolveDirectory(value));
+  } else {
+    assert.equal(resolveDirectory("C:\\Users\\me\\vault"), "C:\\Users\\me\\vault");
+    assert.equal(resolveDirectory("C:/Users/me/vault"), "C:\\Users\\me\\vault");
+    assert.equal(resolveDirectory("D:\\notes"), "D:\\notes");
+    assert.equal(resolveDirectory("\\\\server\\share"), "\\\\server\\share\\");
+  }
+  // POSIX 形式在任何平台上都保持原样。
+  assert.equal(resolveDirectory("/Users/me/vault"), "/Users/me/vault");
+  assert.equal(resolveDirectory(""), null);
+  assert.equal(resolveDirectory("  "), null);
+  // 相对路径照旧拒绝。
+  assert.throws(() => resolveDirectory("relative/path"));
+  assert.throws(() => resolveDirectory("notes"));
 });

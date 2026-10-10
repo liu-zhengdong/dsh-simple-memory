@@ -78,7 +78,8 @@ window.__ModuleLoader__.load({
         "留空表示只用工作目录里的 .memory；改动写进 profile 的 cordis.patch.yml，立即生效。",
       directory: "全局记忆目录",
       directoryPlaceholder: "/Users/you/Documents/Obsidian/记忆",
-      directoryHint: "绝对路径，或用 ~ 开头；目录里的 Markdown 由你自己维护，插件只读。",
+      directoryHint:
+        "绝对路径（Windows 形如 C:\\Users\\you\\Notes），或用 ~ 开头；目录里的 Markdown 由你自己维护，插件只读。",
       invalidDirectory: "请填绝对路径（或以 ~ 开头），或留空。",
       browse: "选择目录…",
       pickerFailed: "打不开目录选择器，请手动填写路径。",
@@ -151,8 +152,15 @@ window.__ModuleLoader__.load({
       return react.useSyncExternalStore(subscribe, snapshot, snapshot);
     }
 
+    /**
+     * 路径是否可接受。除 POSIX（`/...`）外还要认 Windows 形式：盘符
+     * （`C:\...`、`C:/...`）与 UNC 共享（`\\server\share`）。配置跟着 profile 走，
+     * 在 Mac 上写好的值可能被 Windows 上的同一份配置读回来，只认 `/` 会让它被拒。
+     */
     function isAbsoluteish(value) {
-      return value === "" || value === "~" || value.startsWith("/") || value.startsWith("~/");
+      if (value === "" || value === "~" || value.startsWith("/") || value.startsWith("~/"))
+        return true;
+      return /^[A-Za-z]:[\\/]/.test(value) || /^\\\\[^\\]/.test(value);
     }
 
     /**
