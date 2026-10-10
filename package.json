@@ -45,7 +45,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
     "bench": "node test/benchmark.ts",
