@@ -8,13 +8,13 @@ importers:
 
   .:
     dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: ^3.18.4
+        version: 3.18.4
       yaml:
         specifier: 2.9.0
         version: 2.9.0
     devDependencies:
-      '@deepseek-ai/schemastery':
-        specifier: 3.18.4
-        version: 3.18.4
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
