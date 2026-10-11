@@ -22,6 +22,8 @@ interface Source {
   digest?: string;
   issues: Partial<Record<"watch" | "load" | "refresh" | "save", string>>;
   lastScan: number;
+  reads: number;
+  cacheHits: number;
 }
 const MAX_CACHE_FILE = 20 * 1024 * 1024;
 const FALLBACK_INTERVAL = 30_000;
@@ -75,6 +77,8 @@ export class KeywordStore {
           closed: false,
           issues: {},
           lastScan: 0,
+          reads: 0,
+          cacheHits: 0,
         };
         this.sources.set(root, state);
         this.observe(state);
@@ -126,8 +130,8 @@ export class KeywordStore {
     const states = [...this.sources.values()];
     return {
       refreshes: this.refreshes,
-      reads: states.reduce((n, s) => n + s.index.reads, 0),
-      cacheHits: states.reduce((n, s) => n + s.index.cacheHits, 0),
+      reads: states.reduce((n, s) => n + s.reads, 0),
+      cacheHits: states.reduce((n, s) => n + s.cacheHits, 0),
     };
   }
 
@@ -296,7 +300,7 @@ export class KeywordStore {
       text: "selected",
       bytes: 0,
     };
-    await state.index.refresh(
+    const pass = await state.index.refresh(
       {
         directory: state.root,
         sources: [source],
@@ -309,7 +313,14 @@ export class KeywordStore {
       changes,
     );
     delete state.issues.refresh;
-    this.refreshes++;
+    // A pass that found nothing new is a cheap re-check, not a refresh. Counting
+    // it would republish the match map and report its own near-zero I/O as the
+    // source's cost, hiding the work the real pass did.
+    if (pass.changed) {
+      state.reads = pass.reads;
+      state.cacheHits = pass.cacheHits;
+      this.refreshes++;
+    }
     state.lastScan = Date.now();
     clearTimeout(state.saveTimer);
     if (!state.closed) {

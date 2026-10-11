@@ -18,6 +18,17 @@ export declare class KeywordIndex {
     /** Disk cache contains only bounded, validated metadata. Never accept cached bodies. */
     exportCache(): unknown;
     importCache(data: unknown, directory: string): void;
-    refresh(snapshot: Snapshot, changes?: readonly string[]): Promise<void>;
+    /** Reconcile the index against a snapshot.
+     *
+     * Returns this pass's own I/O counts, which the caller accumulates: the
+     * counters are per-pass, so a later cheap pass must not erase the work an
+     * earlier one did. `changed` reports whether the published index actually
+     * differs — a pass that finds nothing new must not count as a refresh, or
+     * every replayed filesystem event would rebuild the match map for nothing. */
+    refresh(snapshot: Snapshot, changes?: readonly string[]): Promise<{
+        reads: number;
+        cacheHits: number;
+        changed: boolean;
+    }>;
     match(text: string): string[];
 }

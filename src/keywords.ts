@@ -127,10 +127,17 @@ export class KeywordIndex {
     this.cacheBytes = parsed.cacheBytes;
   }
 
+  /** Reconcile the index against a snapshot.
+   *
+   * Returns this pass's own I/O counts, which the caller accumulates: the
+   * counters are per-pass, so a later cheap pass must not erase the work an
+   * earlier one did. `changed` reports whether the published index actually
+   * differs — a pass that finds nothing new must not count as a refresh, or
+   * every replayed filesystem event would rebuild the match map for nothing. */
   async refresh(
     snapshot: Snapshot,
     changes?: readonly string[],
-  ): Promise<void> {
+  ): Promise<{ reads: number; cacheHits: number; changed: boolean }> {
     // Reconcile only affected subtrees. Diagnostics/limits require a full retry.
     if (this.issues.length) changes = undefined;
     const within = (path: string, parent: string) =>
@@ -141,6 +148,8 @@ export class KeywordIndex {
       !changes ||
       changes.some((change) => within(path, change) || within(change, path));
     const notes = new Map([...this.notes].filter(([path]) => !affected(path)));
+    const previousNotes = this.notes;
+    const previousIssues = this.issues;
     this.issues = [];
     this.reads = this.cacheHits = 0;
     let issueCount = 0;
@@ -297,6 +306,12 @@ export class KeywordIndex {
     this.notes = new Map(
       [...notes].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
     );
+    const changed =
+      this.notes.size !== previousNotes.size ||
+      [...this.notes].some(([path, note]) => previousNotes.get(path) !== note) ||
+      this.issues.length !== previousIssues.length ||
+      this.issues.some((issue, index) => issue !== previousIssues[index]);
+    return { reads: this.reads, cacheHits: this.cacheHits, changed };
   }
 
   match(text: string): string[] {

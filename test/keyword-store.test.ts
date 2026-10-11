@@ -100,6 +100,9 @@ test("watcher incrementally handles edit, create, rename, delete, bad metadata a
   const f = await fixture(t);
   for (let i = 0; i < 128; i++)
     await writeFile(join(f.deep, `${i}.md`), "plain");
+  // macOS FSEvents replays writes made before a watcher exists, which would be
+  // counted as this test's incremental work. Let the tree settle first.
+  await delay(150);
   const store = f.create();
   store.prepare(await f.snapshot());
   await store.publish();
