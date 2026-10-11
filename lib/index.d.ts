@@ -1,7 +1,7 @@
 /**
  * dsh-simple-memory：把用户自己维护的 Markdown 记忆目录接入 DSH。
  *
- * 每一轮只把「索引」放进上下文：根层记忆的名称、绝对路径、`description`/`purpose`
+ * 每一轮只把「索引」放进上下文：根层记忆的名称、绝对路径、`description`
  * 定位，以及子文件夹入口；`defaultopen: true` 的记忆才带全文。更深层的记忆不进
  * 默认上下文，靠上层正文里的 `[[路径]]` 引用，或 frontmatter `keywords` 的字面短语
  * 命中来按需提醒。全文始终由模型自己用 read 工具读取，插件只读不改用户的目录。

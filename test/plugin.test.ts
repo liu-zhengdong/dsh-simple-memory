@@ -78,7 +78,7 @@ async function makeVault(): Promise<string> {
   const vault = await mkdtemp(join(tmpdir(), "dsh-simple-memory-vault-"));
   await writeFile(
     join(vault, "USER.md"),
-    ["---", "description: 用户画像", "purpose: 回答前参考", "---", "", "住在中国。"].join("\n"),
+    ["---", "description: 用户画像，回答前参考", "---", "", "住在中国。"].join("\n"),
   );
   await mkdir(join(vault, "项目"));
   await writeFile(
@@ -87,8 +87,7 @@ async function makeVault(): Promise<string> {
       "---",
       "keywords:",
       "  - 字体",
-      "purpose: 字体栈约定",
-      "description: 界面字体怎么选",
+      "description: 界面字体怎么选；字体栈约定",
       "---",
       "",
       "正文里提到模板片段 {{cwd}} 也不该让组装失败。",

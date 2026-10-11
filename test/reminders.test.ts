@@ -14,7 +14,6 @@ function index(notes: Partial<KeywordNote>[]): KeywordIndex {
         path: note.path!,
         keywords: note.keywords ?? [],
         description: note.description,
-        purpose: note.purpose,
       },
     ]),
   );
@@ -47,8 +46,7 @@ const deep = {
   name: "字体.md",
   path: "/vault/项目/字体.md",
   keywords: ["字体", "font-family"],
-  purpose: "设置字体时参考。",
-  description: "字体栈约定。",
+  description: "字体栈约定，设置字体时参考。",
 };
 
 test("用户输入命中在本次提供，并按路径去重", () => {
@@ -62,7 +60,7 @@ test("用户输入命中在本次提供，并按路径去重", () => {
   );
   assert.match(first.text, /^# 关键词提醒/);
   assert.match(first.text, /路径：\/vault\/项目\/字体\.md/);
-  assert.match(first.text, /定位：设置字体时参考。/);
+  assert.match(first.text, /描述：字体栈约定，设置字体时参考。/);
   // 再次命中不重复提供。
   reminders.capture("font-family 也要改");
   assert.equal(reminders.take(0).reminders.length, 0);

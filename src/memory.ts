@@ -10,13 +10,11 @@ export interface Metadata {
   defaultopen: boolean;
   keywords?: string[];
   description?: string;
-  purpose?: string;
 }
 export interface Note {
   name: string;
   path: string;
   description?: string;
-  purpose?: string;
   body?: string;
   error?: string;
 }
@@ -116,11 +114,11 @@ export function parseMetadata(source: string): Metadata {
       ...new Set(value.map((word: string) => word.trim().toLowerCase())),
     ];
   }
-  for (const key of ["description", "purpose"] as const) {
-    const value = fields.get(key);
-    if (value == null) continue;
-    if (typeof value !== "string") throw new Error(`${key} 必须是文本`);
-    if (value.trim()) result[key] = value.trim();
+  const description = fields.get("description");
+  if (description != null) {
+    if (typeof description !== "string")
+      throw new Error("description 必须是文本");
+    if (description.trim()) result.description = description.trim();
   }
   return result;
 }
@@ -136,10 +134,9 @@ export function renderNote(note: Note): string {
   const lines = [full ? `### ${note.name}` : `- ${note.name}`];
   const indent = full ? "" : "  ";
   lines.push(field("路径", note.path, indent));
-  if (note.purpose) lines.push(field("定位", note.purpose, indent));
-  if (full) lines.push("", note.body!);
-  else if (note.description)
+  if (note.description)
     lines.push(field("描述", note.description, indent));
+  if (full) lines.push("", note.body!);
   if (note.error) lines.push(field("未展开", note.error, indent));
   return lines.join("\n");
 }
@@ -222,7 +219,7 @@ function renderContract(path: string, kind: SourceKind): string {
     `- 何时写入：结论${scope}长期成立时——用户偏好、项目约定、踩过的坑、要反复查证的事实；一次性的过程细节不写。`,
     "- 怎么写：用文件工具直接在本目录新建或改 `.md`；插件只读，不会替你写。",
     "- 收录规则：只扫本目录根层的 `.md`，点开头与符号链接跳过；子文件夹只作入口列出。",
-    "- frontmatter：`description` 一句话定位、`purpose` 什么时候该看（都进索引）；`keywords` 命中就提醒；`defaultopen` 设为 true 则每轮带全文（单篇别超 8 KiB）。",
+    "- frontmatter：`description` 一句话说清这是什么、什么时候该看（进索引）；`keywords` 命中就提醒；`defaultopen` 设为 true 则每轮带全文（单篇别超 8 KiB）。",
   ].join("\n");
 }
 
@@ -408,7 +405,6 @@ export class MemoryLoader {
           const metadata = await readHeader(file, before.size);
           note = {
             ...note,
-            purpose: metadata.purpose,
             description: metadata.description,
           };
           if (metadata.defaultopen)

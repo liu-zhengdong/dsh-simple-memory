@@ -48,12 +48,12 @@ for (const [name, yaml] of Object.entries({
   "numeric boolean": "defaultopen: 1",
   "duplicate key": "defaultopen: false\ndefaultopen: true",
   "description list": "description: [text]",
-  "purpose map": "purpose: { x: y }",
+  "description map": "description: { x: y }",
   "top-level scalar": "true",
   "top-level list": "- true",
   "bad YAML": "description: [",
-  "unknown tag": "purpose: !secret value",
-  "YAML alias": "description: &x text\npurpose: *x",
+  "unknown tag": "description: !secret value",
+  "YAML alias": "description: &x text\ntags: *x",
 })) {
   test(`rejects ${name}`, () => {
     assert.throws(() => parseMetadata(yaml));
@@ -63,16 +63,15 @@ for (const [name, yaml] of Object.entries({
 test("valid frontmatter, folded text and unrelated Obsidian properties", () => {
   assert.deepEqual(
     parseMetadata(
-      "description: 简介\npurpose: >-\n  第一行\n  第二行\ndefaultopen: true\ntags: [a, b]\naliases: [用户]",
+      "description: >-\n  第一行\n  第二行\ndefaultopen: true\ntags: [a, b]\naliases: [用户]",
     ),
     {
       defaultopen: true,
-      description: "简介",
-      purpose: "第一行 第二行",
+      description: "第一行 第二行",
     },
   );
   assert.deepEqual(parseMetadata(""), { defaultopen: false });
-  assert.deepEqual(parseMetadata("description:\npurpose: ''"), {
+  assert.deepEqual(parseMetadata("description: ''"), {
     defaultopen: false,
   });
   assert.deepEqual(parseMetadata("__proto__: { defaultopen: true }"), {
@@ -95,16 +94,16 @@ test("BOM/CRLF, no frontmatter, delimiter at EOF and incomplete prefixes", () =>
   );
 });
 
-test("only root notes and folders; purpose in both modes; body preserved exactly", async (t) => {
+test("only root notes and folders; description in both modes; body preserved exactly", async (t) => {
   const { directory, config, loader } = await fixture(t);
   const body = "\n# 偏好\n\n保留 [[双链]]、空行和尾部空格。  \n";
   await writeFile(
     join(directory, "USER.md"),
-    `---\npurpose: 用户建模\ndefaultopen: true\n---\n${body}`,
+    `---\ndescription: 用户建模\ndefaultopen: true\n---\n${body}`,
   );
   await writeFile(
     join(directory, "参考.md"),
-    "---\ndescription: 摘要\npurpose: 背景资料\ndefaultopen: false\n---\nMUST_NOT_AUTO_INJECT",
+    "---\ndescription: 背景资料\ndefaultopen: false\n---\nMUST_NOT_AUTO_INJECT",
   );
   await writeFile(join(directory, "无属性.md"), "ALSO_NOT_INJECTED");
   await mkdir(join(directory, "项目", "深层"), { recursive: true });
@@ -129,7 +128,6 @@ test("only root notes and folders; purpose in both modes; body preserved exactly
   for (const marker of [
     "用户建模",
     "背景资料",
-    "摘要",
     body,
     join(directory, "项目"),
   ])

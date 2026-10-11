@@ -6,13 +6,11 @@ export interface Metadata {
     defaultopen: boolean;
     keywords?: string[];
     description?: string;
-    purpose?: string;
 }
 export interface Note {
     name: string;
     path: string;
     description?: string;
-    purpose?: string;
     body?: string;
     error?: string;
 }

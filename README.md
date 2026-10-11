@@ -10,7 +10,7 @@
 ## 它做什么
 
 - **索引注入**：每轮把记忆的根层条目放进运行时上下文——名称、绝对路径、frontmatter
-  的 `description`/`purpose` 定位，以及子文件夹入口。`defaultopen: true` 的记忆带全文，
+  的 `description` 定位，以及子文件夹入口。`defaultopen: true` 的记忆带全文，
   其余只给摘要；更深层的记忆不进默认上下文。
 - **仓库契约**：每段来源开头附一段「记忆仓库」，写明这个仓库的绝对路径、什么结论值得
   写进来、写入方式与 frontmatter 各字段的作用。目录为空时同样给出，模型才知道往哪落
@@ -100,8 +100,7 @@ profile 的 `cordis.patch.yml`（也就是上面那段 YAML），立即生效。
 
 ```markdown
 ---
-description: 界面字体的选择（进索引，一句话定位）
-purpose: 排版相关任务开工前先看（进索引）
+description: 界面字体的选择，排版相关任务开工前先看（进索引）
 defaultopen: true          # 可选：整篇正文进默认上下文（超过 8 KiB 会提示拆分）
 keywords:                  # 可选：字面短语，命中就提醒
   - 字体

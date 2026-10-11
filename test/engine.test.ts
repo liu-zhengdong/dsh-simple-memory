@@ -70,7 +70,7 @@ async function makeVault(): Promise<string> {
   const vault = await mkdtemp(join(tmpdir(), "dsh-simple-memory-vault-"));
   await writeFile(
     join(vault, "USER.md"),
-    ["---", "description: 用户画像", "purpose: 回答前参考", "---", "", "住在中国。"].join("\n"),
+    ["---", "description: 用户画像，回答前参考", "---", "", "住在中国。"].join("\n"),
   );
   await mkdir(join(vault, "项目"));
   await writeFile(
@@ -79,8 +79,7 @@ async function makeVault(): Promise<string> {
       "---",
       "keywords:",
       "  - 字体",
-      "purpose: 字体栈约定",
-      "description: 界面字体怎么选",
+      "description: 界面字体怎么选；字体栈约定",
       "---",
       "",
       "正文里提到模板片段 {{cwd}} 也不该让组装失败。",
@@ -100,7 +99,7 @@ function engineFor(vault: string | null, extra: Partial<PluginConfig> = {}) {
   return new MemoryEngine(() => config);
 }
 
-test("根层记忆以索引形式注入：名称、绝对路径、定位", async () => {
+test("根层记忆以索引形式注入：名称、绝对路径、描述", async () => {
   const cwd = await makeCwd();
   const vault = await makeVault();
   try {
@@ -226,7 +225,7 @@ test("项目内的 .memory 由工作目录向上发现", async () => {
   await mkdir(join(cwd, ".memory"));
   await writeFile(
     join(cwd, ".memory", "约定.md"),
-    ["---", "purpose: 本仓库约定", "---", "", "提交信息用中文。"].join("\n"),
+    ["---", "description: 本仓库约定", "---", "", "提交信息用中文。"].join("\n"),
   );
   try {
     const { agent } = makeAgent(nested);

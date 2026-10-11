@@ -107,9 +107,8 @@ export class KeywordIndex {
           (note.deepDefaultopen !== undefined &&
             note.deepDefaultopen !== true) ||
           (!note.keywords.length && note.deepDefaultopen !== true) ||
-          [note.description, note.purpose].some(
-            (value) => value !== undefined && typeof value !== "string",
-          ))
+          (note.description !== undefined &&
+            typeof note.description !== "string"))
       )
         throw new Error("无效的缓存笔记");
       parsed.remember(path, {
@@ -120,7 +119,6 @@ export class KeywordIndex {
           path,
           keywords: note.keywords,
           description: note.description,
-          purpose: note.purpose,
           deepDefaultopen: note.deepDefaultopen,
         },
       });
@@ -243,7 +241,6 @@ export class KeywordIndex {
                   path,
                   keywords: metadata.keywords ?? [],
                   description: metadata.description,
-                  purpose: metadata.purpose,
                   deepDefaultopen: metadata.defaultopen ? true : undefined,
                 };
               if (
