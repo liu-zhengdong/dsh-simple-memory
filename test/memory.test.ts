@@ -129,7 +129,8 @@ test("only root notes and folders; description in both modes; body preserved exa
     "用户建模",
     "背景资料",
     body,
-    join(directory, "项目"),
+    `## 记忆仓库：\`${directory}\``,
+    "## 文件夹\n\n- 项目",
   ])
     assert.ok(result.text.includes(marker));
   for (const marker of [
@@ -185,7 +186,8 @@ test("malformed and oversized notes keep paths, never partial or stale full text
   await writeFile(path, '---\ndefaultopen: "false"\n---\nPRIVATE_BODY');
   let result = await loader.scan(config);
   assert.equal(result.issues.length, 1);
-  assert.ok(result.text.includes(path));
+  assert.ok(result.text.includes(`## 记忆仓库：\`${directory}\``));
+  assert.ok(result.text.includes("- bad.md"));
   assert.ok(
     !result.text.includes("PRIVATE_BODY") && !result.text.includes("OLD_FULL"),
   );
@@ -358,12 +360,12 @@ test("scan injects global first then project shallow to deep; reason-marked sour
   assert.equal(result.sources.length, 4);
   assert.ok(
     result.sources[0].text.startsWith(
-      "# 记忆\n\n这些是跨会话保留的记忆：用作回答与判断的背景；正文未展开的，需要时按路径读取。\n\n",
+      `# 记忆\n\n这些是跨会话保留的记忆，用作回答与判断的背景。\n\n## 记忆仓库：\`${vault}\`\n`,
     ),
   );
   assert.ok(
     result.sources[1].text.startsWith(
-      "# 项目记忆\n\n这些是当前项目保留的记忆：用作回答与判断的背景；正文未展开的，需要时按路径读取。\n\n",
+      `# 项目记忆\n\n这些是当前项目保留的记忆，用作回答与判断的背景。\n\n## 记忆仓库：\`${shallow}\`\n`,
     ),
   );
   assert.ok(

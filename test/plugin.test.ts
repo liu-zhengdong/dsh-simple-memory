@@ -172,7 +172,8 @@ test("组装 waterfall 用最新扫描结果替换同名段，只留一段", asy
     assert.equal(ours.length, 1, "同名段只能有一段");
     const text = String(ours[0]!.text);
     assert.match(text, /^# 记忆/m);
-    assert.ok(text.includes(join(vault, "USER.md")), text);
+    assert.ok(text.includes(`## 记忆仓库：\`${vault}\``), text);
+    assert.ok(text.includes("- USER.md：用户画像，回答前参考"), text);
     assert.ok(!text.includes("陈旧文本"));
     assert.equal(contexts[0]!.name, "sandbox:policy", "其它段保持原样");
   } finally {

@@ -73,7 +73,7 @@ window.__ModuleLoader__.load({
     const zh = {
       nav: "记忆",
       heading: "记忆目录",
-      summary: "Markdown 记忆目录：每轮注入索引，正文按需读取。",
+      summary: "Markdown 记忆目录：常驻一份索引，正文按需读取。",
       intro:
         "留空表示只用工作目录里的 .memory；改动写进 profile 的 cordis.patch.yml，立即生效。",
       directory: "全局记忆目录",
@@ -87,7 +87,7 @@ window.__ModuleLoader__.load({
       projectSourcesHint: "从工作目录向上到 git 根，逐层发现 .memory 目录。",
       reminders: "启用关键词提醒",
       remindersHint: "frontmatter 的 keywords 命中时，提醒模型去读那篇记忆。",
-      maxBytes: "每轮注入上限（字节）",
+      maxBytes: "单次注入上限（字节）",
       maxBytesHint: "1024 到 16777216；超预算的整份来源会被排除并在状态栏提示。",
       invalidBytes: "请填 1024 到 16777216 之间的整数。",
       overridden: "已在设置里改写",

@@ -45,7 +45,8 @@ test("只有根层 defaultopen 注入正文，深层正文与条目都不进上�
   const snapshot = await scan();
   assert.deepEqual(snapshot.issues, []);
   assert.ok(!snapshot.text.includes("# 常驻记忆"));
-  assert.ok(snapshot.text.includes(join(config.directory, "root.md")));
+  assert.ok(snapshot.text.includes(`## 记忆仓库：\`${config.directory}\``));
+  assert.ok(snapshot.text.includes("### root.md"), snapshot.text);
   assert.match(snapshot.text, /ROOT_BODY/);
   for (const text of ["DEEP_HIDDEN_BODY", "KEYED_BODY", "hidden.md"])
     assert.ok(!snapshot.text.includes(text), `${text} 不应进入默认上下文`);
@@ -82,9 +83,10 @@ test("单篇默认展开全文超 8 KiB：照常注入并提醒", async (t) => {
   assert.equal(snapshot.issues.length, 1);
   assert.match(
     snapshot.issues[0],
-    /^root\.md：每轮注入全文 8\.8 KiB，超过单篇默认展开 8 KiB 上限/,
+    /^root\.md：注入全文 8\.8 KiB，超过单篇默认展开 8 KiB 上限/,
   );
-  assert.ok(snapshot.text.includes(join(config.directory, "root.md")));
+  assert.ok(snapshot.text.includes(`## 记忆仓库：\`${config.directory}\``));
+  assert.ok(snapshot.text.includes("### root.md"), snapshot.text);
   assert.match(snapshot.text, /字{100}/);
   assert.ok(!snapshot.text.includes("DEEP_HIDDEN_BODY"));
 });

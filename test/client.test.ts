@@ -348,7 +348,7 @@ test("summary 座位只返回一行文本", () => {
   const harness = makeHarness();
   const card = harness.registrations[0]!.component as (props: any) => unknown;
   const text = card({ ...harness.faceOf(0), view: "summary" });
-  assert.equal(text, "Markdown 记忆目录：每轮注入索引，正文按需读取。");
+  assert.equal(text, "Markdown 记忆目录：常驻一份索引，正文按需读取。");
 });
 
 test("「选择目录…」把结果写回 directory，保存只提交变化过的字段", async () => {

@@ -1,7 +1,7 @@
 # dsh-simple-memory
 
 把**你自己维护的 Markdown 记忆目录**（Obsidian 库、`.memory` 项目记忆）接入 DSH：
-每轮常驻一份**索引**，正文按需读取，插件只读不改。
+常驻一份**索引**（渲染出的文本不变就不重复注入），正文按需读取，插件只读不改。
 
 从 [pi-memory](https://github.com/liu-zhengdong/pi-memory) 移植。行为契约（frontmatter
 的含义、按字节计的预算、整份来源排除、字面关键词提醒）保持不变，注入机制按 DSH 的
@@ -9,9 +9,10 @@
 
 ## 它做什么
 
-- **索引注入**：每轮把记忆的根层条目放进运行时上下文——名称、绝对路径、frontmatter
-  的 `description` 定位，以及子文件夹入口。`defaultopen: true` 的记忆带全文，
-  其余只给摘要；更深层的记忆不进默认上下文。
+- **索引注入**：把记忆的根层条目放进运行时上下文——每条给名称与 frontmatter 的
+  `description` 定位，仓库根路径只在「记忆仓库」段写一次，子文件夹只列名字。
+  `defaultopen: true` 的记忆带全文，其余只给摘要；更深层的记忆不进默认上下文。
+  渲染出的文本与上一条快照相同就什么都不做，改记忆、换工作目录或升级插件才会重发。
 - **仓库契约**：每段来源开头附一段「记忆仓库」，写明这个仓库的绝对路径、什么结论值得
   写进来、写入方式与 frontmatter 各字段的作用。目录为空时同样给出，模型才知道往哪落
   第一条。这段文字不占配置，改它要改 `src/memory.ts`。
@@ -61,7 +62,7 @@ dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
 | `directory` | `""` | 全局记忆目录，绝对路径或 `~` 开头；留空表示不使用全局来源 |
 | `projectSources` | `true` | 从工作目录向上到 git 根逐层发现 `.memory` |
 | `reminders` | `true` | 按 `keywords` 命中用户输入或模型文本时提醒 |
-| `maxContextBytes` | `262144` | 每轮注入的记忆文本上限（UTF-8 字节，1 KiB–16 MiB） |
+| `maxContextBytes` | `262144` | 单次注入的记忆文本上限（UTF-8 字节，1 KiB–16 MiB） |
 
 配置住在 profile 的 `cordis.patch.yml` 里。**patch 整块替换 `config`，不做深合并**，
 所以覆盖时请写全你要的字段：
@@ -112,7 +113,7 @@ keywords:                  # 可选：字面短语，命中就提醒
 
 - 只有 `.md` 会被收录；点开头的文件、符号链接跳过。
 - 每层来源只扫**根目录的直接子项**，子文件夹作为入口列出（示例见 `examples/vault/`）。
-- 上面这些规则以「记忆仓库」那段文字随每轮注入，模型据此决定往哪写、怎么写；
+- 上面这些规则以「记忆仓库」那段文字随索引一起注入，模型据此决定往哪写、怎么写；
   插件自己不写盘。
 - 解析失败、frontmatter 超限、来源超预算都会出现在 `/memory` 的输出里，不会静默截断。
 
@@ -120,7 +121,7 @@ keywords:                  # 可选：字面短语，命中就提醒
 
 | 项 | 值 |
 | --- | --- |
-| 每轮注入文本 | 256 KiB（可配 1 KiB–16 MiB） |
+| 单次注入文本 | 256 KiB（可配 1 KiB–16 MiB） |
 | 单篇 frontmatter | 64 KiB |
 | 单篇 `defaultopen` 全文 | 8 KiB（照常注入，但提示拆分） |
 | 关键词索引 | 16 MiB / 100,000 条 |
@@ -143,7 +144,7 @@ keywords:                  # 可选：字面短语，命中就提醒
 ```bash
 pnpm install
 npm run check     # tsc --noEmit
-npm test          # node --test（95 个用例，含假宿主、客户端接线与 volatile 配置契约测试）
+npm test          # node --test（96 个用例，含假宿主、客户端接线与 volatile 配置契约测试）
 npm run build     # tsc -p tsconfig.build.json → lib/
 ```
 

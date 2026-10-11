@@ -34,7 +34,7 @@ export class Reminders {
   }
 
   /**
-   * 每轮请求开始时配置：记录本轮默认注入的根层记忆（视为已提供），
+   * 每次请求开始时配置：记录本次默认注入的根层记忆（视为已提供），
    * 并清除本轮已不再属于候选范围的路径。
    */
   configure(snapshot: Snapshot | undefined, budget: number): void {

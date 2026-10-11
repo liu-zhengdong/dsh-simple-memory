@@ -1,5 +1,5 @@
 /**
- * 注入引擎：把 pi-memory 的「每轮提供索引 + 按需关键词提醒」搬到 DSH。
+ * 注入引擎：把 pi-memory 的「常驻索引 + 按需关键词提醒」搬到 DSH。
  *
  * 与 Pi 版的分工差异：
  * - 文本的落点不再是系统提示词，而是 `ctx.systemPrompt.context` 造的运行时上下文
@@ -52,11 +52,14 @@ export function isAbsolutePath(value: string): boolean {
 export function resolveDirectory(input: string): string | null {
   const value = input.trim();
   if (!value) return null;
+  // `~/x` 与 `~\x` 都认，都按本机分隔符重新拼：同一份配置会跟着 profile 在 Mac 与
+  // Windows 之间走，`~\x` 落到 Mac 上时若原样保留，`\` 会被当成文件名的一部分。
+  const home = /^~[\\/](.*)$/.exec(value);
   const expanded =
     value === "~"
       ? homedir()
-      : value.startsWith("~/")
-        ? join(homedir(), value.slice(2))
+      : home
+        ? join(homedir(), home[1])
         : value;
   if (isAbsolute(expanded)) return resolve(expanded);
   if (win32.isAbsolute(expanded)) return win32.resolve(expanded);

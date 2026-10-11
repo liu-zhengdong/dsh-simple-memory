@@ -59,6 +59,7 @@ export declare function headerBounds(text: string, eof: boolean): {
 } | undefined;
 export declare function parseMetadata(source: string): Metadata;
 export declare const signature: (stat: BigIntStats) => string;
+/** 独立消息里的条目（关键词提醒）：不在块内，必须自带绝对路径。 */
 export declare function renderNote(note: Note): string;
 /**
  * Locate `.memory` directories from cwd up to the git root (or filesystem root).

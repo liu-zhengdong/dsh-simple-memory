@@ -99,18 +99,17 @@ function engineFor(vault: string | null, extra: Partial<PluginConfig> = {}) {
   return new MemoryEngine(() => config);
 }
 
-test("根层记忆以索引形式注入：名称、绝对路径、描述", async () => {
+test("根层记忆以索引形式注入：仓库路径、名称、描述", async () => {
   const cwd = await makeCwd();
   const vault = await makeVault();
   try {
     const { agent } = makeAgent(cwd);
     const text = await engineFor(vault).refresh(agent);
     assert.match(text, /^# 记忆/m);
-    assert.ok(text.includes(join(vault, "USER.md")), text);
-    assert.ok(text.includes("用户画像"));
-    assert.ok(text.includes("回答前参考"));
+    assert.ok(text.includes(`## 记忆仓库：\`${vault}\``), text);
+    assert.ok(text.includes("- USER.md：用户画像，回答前参考"));
     assert.ok(!text.includes("住在中国。"), "没有 defaultopen 的记忆不应展开正文");
-    assert.ok(text.includes(join(vault, "项目")), "子文件夹作为入口列出");
+    assert.ok(text.includes("## 文件夹\n\n- 项目"), "子文件夹作为入口列出");
   } finally {
     await rm(cwd, { recursive: true, force: true });
     await rm(vault, { recursive: true, force: true });
@@ -231,7 +230,8 @@ test("项目内的 .memory 由工作目录向上发现", async () => {
     const { agent } = makeAgent(nested);
     const text = await engineFor(null).refresh(agent);
     assert.match(text, /^# 项目记忆/m);
-    assert.ok(text.includes(join(cwd, ".memory", "约定.md")));
+    assert.ok(text.includes(`## 记忆仓库：\`${join(cwd, ".memory")}\``));
+    assert.ok(text.includes("- 约定.md：本仓库约定"));
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }
@@ -286,6 +286,9 @@ test("异平台写下的绝对路径不被改写、也不被拒绝", () => {
   }
   // POSIX 形式在任何平台上都保持原样。
   assert.equal(resolveDirectory("/Users/me/vault"), "/Users/me/vault");
+  // `~` 后面两种分隔符都收，都按本机形式拼出来。
+  assert.equal(resolveDirectory("~/vault"), resolveDirectory("~\\vault"));
+  assert.ok(!resolveDirectory("~\\vault")!.includes("\\"), "反斜杠不该留在路径里");
   assert.equal(resolveDirectory(""), null);
   assert.equal(resolveDirectory("  "), null);
   // 相对路径照旧拒绝。
