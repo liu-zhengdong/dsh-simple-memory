@@ -154,11 +154,13 @@ window.__ModuleLoader__.load({
 
     /**
      * 路径是否可接受。除 POSIX（`/...`）外还要认 Windows 形式：盘符
-     * （`C:\...`、`C:/...`）与 UNC 共享（`\\server\share`）。配置跟着 profile 走，
-     * 在 Mac 上写好的值可能被 Windows 上的同一份配置读回来，只认 `/` 会让它被拒。
+     * （`C:\...`、`C:/...`）与 UNC 共享（`\\server\share`），`~` 后面的分隔符
+     * 两种都收。配置跟着 profile 走，在 Mac 上写好的值可能被 Windows 上的同一份
+     * 配置读回来，只认 `/` 会让它被拒。判据要与 `src/engine.ts` 的
+     * `isAbsolutePath` / `resolveDirectory` 一致。
      */
     function isAbsoluteish(value) {
-      if (value === "" || value === "~" || value.startsWith("/") || value.startsWith("~/"))
+      if (value === "" || value.startsWith("/") || /^~([\\/]|$)/.test(value))
         return true;
       return /^[A-Za-z]:[\\/]/.test(value) || /^\\\\[^\\]/.test(value);
     }
