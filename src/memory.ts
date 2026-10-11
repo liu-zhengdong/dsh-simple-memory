@@ -208,11 +208,30 @@ const sourceTitle = (kind: SourceKind): string =>
 const sourceIntro = (kind: SourceKind): string =>
   `${kind === "global" ? "这些是跨会话保留的记忆" : "这些是当前项目保留的记忆"}：用作回答与判断的背景；正文未展开的，需要时按路径读取。`;
 
+/**
+ * 块首的仓库契约：路径、什么时候写、按什么格式写。
+ * 每轮随块注入，模型才知道记忆往哪落、什么值得落；目录为空时同样给出，
+ * 否则模型只看到一个标题，无从下手。
+ */
+function renderContract(path: string, kind: SourceKind): string {
+  const scope = kind === "global" ? "跨会话、跨项目" : "只在本项目";
+  return [
+    "## 记忆仓库",
+    "",
+    `- 路径：${path}`,
+    `- 何时写入：结论${scope}长期成立时——用户偏好、项目约定、踩过的坑、要反复查证的事实；一次性的过程细节不写。`,
+    "- 怎么写：用文件工具直接在本目录新建或改 `.md`；插件只读，不会替你写。",
+    "- 收录规则：只扫本目录根层的 `.md`，点开头与符号链接跳过；子文件夹只作入口列出。",
+    "- frontmatter：`description` 一句话定位、`purpose` 什么时候该看（都进索引）；`keywords` 命中就提醒；`defaultopen` 设为 true 则每轮带全文（单篇别超 8 KiB）。",
+  ].join("\n");
+}
+
 function renderSource(
   source: Pick<SourceSnapshot, "notes" | "folders">,
+  path: string,
   kind: SourceKind,
 ): string {
-  const parts: string[] = [];
+  const parts: string[] = [sourceIntro(kind), renderContract(path, kind)];
   const full = source.notes.filter((note) => note.body !== undefined);
   const summaries = source.notes.filter((note) => note.body === undefined);
   if (full.length) parts.push("## 已展开记忆", ...full.map(renderNote));
@@ -226,8 +245,8 @@ function renderSource(
         .join("\n"),
     );
   if (!source.notes.length && !source.folders.length)
-    return "此目录暂无可提供的根记忆或子文件夹。";
-  return [sourceIntro(kind), ...parts].join("\n\n");
+    parts.push("本目录还没有记忆文件；要沉淀什么，就在这里建一个 `.md`。");
+  return parts.join("\n\n");
 }
 
 /** /memory preview: injected blocks plus every excluded source with its reason. */
@@ -484,13 +503,17 @@ export class MemoryLoader {
           source.kind === "global" ? issue : `${source.path}/${issue}`,
         ),
       );
-      const text = `${sourceTitle(source.kind)}\n\n${renderSource(collected, source.kind)}`;
+      const text = `${sourceTitle(source.kind)}\n\n${renderSource(
+        collected,
+        source.path,
+        source.kind,
+      )}`;
       const cost = bytes(text);
       const separator = blocks.length ? 2 : 0;
       if (used + separator + cost > maxContextBytes) {
         const reason = `默认上下文超过 ${
           maxContextBytes / 1024
-        } KiB，该来源本轮未注入。请缩小目录、关闭部分 defaultopen，或调整 memory.json 的 maxContextBytes。`;
+        } KiB，该来源本轮未注入。请缩小目录、关闭部分 defaultopen，或在 profile 的 cordis.patch.yml 里调大 maxContextBytes。`;
         snapshot.issues.push(`${source.path}：${reason}`);
         snapshot.sources.push({
           kind: source.kind,
