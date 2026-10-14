@@ -93,6 +93,7 @@ function engineFor(vault: string | null, extra: Partial<PluginConfig> = {}) {
     directory: vault ?? "",
     projectSources: true,
     reminders: true,
+    proactive: true,
     maxContextBytes: 256 * 1024,
     ...extra,
   };
@@ -124,11 +125,11 @@ test("用户输入命中 keywords 时给出提醒，并带绝对路径", async (
     const engine = engineFor(vault);
     await engine.refresh(fake.agent);
     const claimed = fake.claim("这个界面的字体想换一下");
-    const text = await engine.remind(fake.agent, [claimed]);
+    const { reminder: text } = await engine.remind(fake.agent, [claimed]);
     assert.match(text, /# 关键词提醒/);
     assert.ok(text.includes(join(vault, "项目", "字体.md")));
     // 已经提醒过的记忆不重复提醒。
-    const again = await engine.remind(fake.agent, [claimed]);
+    const { reminder: again } = await engine.remind(fake.agent, [claimed]);
     assert.equal(again, "");
   } finally {
     await rm(cwd, { recursive: true, force: true });
@@ -142,7 +143,7 @@ test("会话第一条消息就命中关键词时也要给提醒", async () => {
   try {
     const fake = makeAgent(cwd);
     const engine = engineFor(vault);
-    const text = await engine.remind(fake.agent, [
+    const { reminder: text } = await engine.remind(fake.agent, [
       fake.claim("这个界面的字体想换一下"),
     ]);
     assert.match(text, /# 关键词提醒/);
@@ -163,10 +164,10 @@ test("预热与组装刷新都不会吞掉提醒", async () => {
     // 同步的 context provider 会先 warm 一次，随后 waterfall 又 refresh 一次。
     engine.warm(fake.agent);
     await engine.refresh(fake.agent);
-    const text = await engine.remind(fake.agent, [claimed]);
+    const { reminder: text } = await engine.remind(fake.agent, [claimed]);
     assert.match(text, /# 关键词提醒/);
     // 提醒取走一次就算提供过了，同一步里不会重复给。
-    assert.equal(await engine.remind(fake.agent, [claimed]), "");
+    assert.equal((await engine.remind(fake.agent, [claimed])).reminder, "");
   } finally {
     await rm(cwd, { recursive: true, force: true });
     await rm(vault, { recursive: true, force: true });
@@ -180,7 +181,7 @@ test("只有 surface.nodes 可用的宿主也能提醒", async () => {
     const fake = makeAgent(cwd, { surfaceOnly: true });
     // 一步提交之后，这条消息才出现在日志里（下一步或恢复会话时看到）。
     fake.user("这个界面的字体想换一下");
-    const text = await engineFor(vault).remind(fake.agent);
+    const { reminder: text } = await engineFor(vault).remind(fake.agent);
     assert.match(text, /# 关键词提醒/);
   } finally {
     await rm(cwd, { recursive: true, force: true });
@@ -196,7 +197,7 @@ test("模型文本命中留到下一次调用", async () => {
     const engine = engineFor(vault);
     await engine.refresh(fake.agent);
     fake.assistant("我建议统一字体栈");
-    const text = await engine.remind(fake.agent);
+    const { reminder: text } = await engine.remind(fake.agent);
     assert.match(text, /# 关键词提醒/);
   } finally {
     await rm(cwd, { recursive: true, force: true });
@@ -263,6 +264,79 @@ test("空目录与未配置来源时注入空文本", async () => {
     assert.equal(engine.cached(agent), "");
   } finally {
     await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test("写入提醒：轮首给出，同轮后续步不重复，跨轮再给", async () => {
+  const cwd = await makeCwd();
+  const vault = await makeVault();
+  try {
+    const fake = makeAgent(cwd);
+    const engine = engineFor(vault);
+    await engine.refresh(fake.agent);
+    // 轮 1 第 1 步：写入提醒与关键词提醒都给。
+    const first = await engine.remind(fake.agent, [fake.claim("你好")], 1);
+    assert.match(first.writeReminder, /# 记忆写入提醒/);
+    assert.ok(first.writeReminder.includes(`全局：\`${vault}\``), first.writeReminder);
+    // 轮 1 后续步：同轮不再重复。
+    const second = await engine.remind(fake.agent, undefined, 1);
+    assert.equal(second.writeReminder, "");
+    // 轮 2 第 1 步：重新给。
+    const third = await engine.remind(fake.agent, [fake.claim("再来")], 2);
+    assert.match(third.writeReminder, /# 记忆写入提醒/);
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+    await rm(vault, { recursive: true, force: true });
+  }
+});
+
+test("写入提醒：关掉 proactive 后不再给", async () => {
+  const cwd = await makeCwd();
+  const vault = await makeVault();
+  try {
+    const fake = makeAgent(cwd);
+    const engine = engineFor(vault, { proactive: false });
+    const { writeReminder } = await engine.remind(
+      fake.agent,
+      [fake.claim("你好")],
+      1,
+    );
+    assert.equal(writeReminder, "");
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+    await rm(vault, { recursive: true, force: true });
+  }
+});
+
+test("写入提醒：没有可用来源时不给", async () => {
+  const cwd = await makeCwd();
+  try {
+    const fake = makeAgent(cwd);
+    const engine = engineFor(null, { projectSources: false });
+    const { writeReminder } = await engine.remind(
+      fake.agent,
+      [fake.claim("你好")],
+      1,
+    );
+    assert.equal(writeReminder, "");
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test("写入提醒：不传 turn 时不给（兼容无轮次信息的宿主）", async () => {
+  const cwd = await makeCwd();
+  const vault = await makeVault();
+  try {
+    const fake = makeAgent(cwd);
+    const engine = engineFor(vault);
+    const { writeReminder } = await engine.remind(fake.agent, [
+      fake.claim("你好"),
+    ]);
+    assert.equal(writeReminder, "");
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+    await rm(vault, { recursive: true, force: true });
   }
 });
 

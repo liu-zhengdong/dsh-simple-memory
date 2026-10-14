@@ -101,6 +101,7 @@ function configFor(vault: string): Config {
     directory: vault,
     projectSources: true,
     reminders: true,
+    proactive: true,
     maxContextBytes: 256 * 1024,
   } as Config;
 }
@@ -196,7 +197,7 @@ test("pre-step 把命中的关键词提醒作为一条 user 快照消息追加�
     const decision: PreStepDecisionLike = { kind: "enter", messages: [first] };
     const entered = (await listener!(event, () => Promise.resolve(decision))) as PreStepDecisionLike;
     const messages = entered.messages!;
-    assert.equal(messages.length, 2);
+    assert.equal(messages.length, 3, "关键词提醒 + 写入提醒各一条");
     const extra = messages[1]!;
     assert.equal(extra.role, "user");
     assert.equal(extra.source?.kind, CONTEXT_NAME);
@@ -208,7 +209,44 @@ test("pre-step 把命中的关键词提醒作为一条 user 快照消息追加�
     assert.ok(text.includes(join(vault, "项目", "字体.md")), text);
     assert.equal(typeof extra.id, "string");
     assert.notEqual(extra.id, first.id);
-    assert.deepEqual(host.warnings, []);
+    const writeText = (messages[2]!.content as { text?: string }[])[0]?.text ?? "";
+    assert.match(writeText, /# 记忆写入提醒/);
+    assert.ok(writeText.includes(vault), writeText);
+    assert.deepStrictEqual(host.warnings, []);
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+    await rm(vault, { recursive: true, force: true });
+  }
+});
+
+test("pre-step 同轮第二步不再追加写入提醒", async () => {
+  const cwd = await makeCwd();
+  const vault = await makeVault();
+  try {
+    const host = makeHost();
+    apply(host.ctx, configFor(vault));
+    const listener = host.listeners.get("agent/pre-step")!;
+    const agent = fakeAgent(cwd);
+    const first = claimed("这个界面的字体想换一下");
+    const step2 = claimed("继续，字体再大一点");
+    // 第一步：两条提醒都给。
+    const entered1 = (await listener(
+      { agent, messages: [first], turn: 1, step: 1 },
+      () => Promise.resolve({ kind: "enter", messages: [first] } as PreStepDecisionLike),
+    )) as PreStepDecisionLike;
+    assert.equal(entered1.messages!.length, 3);
+    // 同轮第二步：关键词提醒可能因新消息再命中，写入提醒不应再给。
+    const entered2 = (await listener(
+      { agent, messages: [step2], turn: 1, step: 2 },
+      () => Promise.resolve({ kind: "enter", messages: [step2] } as PreStepDecisionLike),
+    )) as PreStepDecisionLike;
+    const texts = (entered2.messages ?? [])
+      .slice(1)
+      .map((m) => (Array.isArray(m.content) ? String((m.content as { text?: string }[])[0]?.text ?? "") : ""));
+    assert.ok(
+      texts.every((t) => !t.includes("# 记忆写入提醒")),
+      `同轮第二步不该再有写入提醒：${JSON.stringify(texts)}`,
+    );
   } finally {
     await rm(cwd, { recursive: true, force: true });
     await rm(vault, { recursive: true, force: true });
@@ -224,6 +262,7 @@ test("没有命中、被拒绝或已中止时都不追加消息", async () => {
     const listener = host.listeners.get("agent/pre-step")!;
     const agent = fakeAgent(cwd);
 
+    // 不带 turn（旧宿主没有轮次信息）也没有命中：关键词与写入提醒都不给。
     const miss = claimed("完全没有关系的一句话");
     const missDecision: PreStepDecisionLike = { kind: "enter", messages: [miss] };
     const keptMiss = (await listener(

@@ -1,7 +1,7 @@
 /**
  * 配置契约回归测试：桌面端设置界面只认 volatile 字段，而 volatile 解析结果
  * 是个带 `get()` 的引用（当普通值读会静默变 undefined）。这里用真实
- * schemastery 解析插件导出的 Config，锁住「四个字段都是 volatile 引用」和
+ * schemastery 解析插件导出的 Config，锁住「五个字段都是 volatile 引用」和
  * 「liveValue 能取回真实值」两件事。
  */
 
@@ -19,9 +19,15 @@ interface VolatileLike {
 const resolve = (partial: Record<string, unknown> = {}): Record<string, VolatileLike> =>
   Config(partial as never) as unknown as Record<string, VolatileLike>;
 
-const FIELDS = ["directory", "projectSources", "reminders", "maxContextBytes"] as const;
+const FIELDS = [
+  "directory",
+  "projectSources",
+  "reminders",
+  "proactive",
+  "maxContextBytes",
+] as const;
 
-test("Config 的四个字段解析后都是 volatile 引用", () => {
+test("Config 的五个字段解析后都是 volatile 引用", () => {
   const resolved = resolve();
   for (const field of FIELDS) {
     assert.equal(
@@ -34,6 +40,7 @@ test("Config 的四个字段解析后都是 volatile 引用", () => {
   assert.equal(liveValue(resolved.directory), "");
   assert.equal(liveValue(resolved.projectSources), true);
   assert.equal(liveValue(resolved.reminders), true);
+  assert.equal(liveValue(resolved.proactive), true);
   assert.equal(liveValue(resolved.maxContextBytes), DEFAULT_MAX_CONTEXT_BYTES);
 });
 
@@ -42,11 +49,13 @@ test("liveValue 从 volatile 引用取回配置值", () => {
     directory: "/tmp/vault",
     projectSources: false,
     reminders: false,
+    proactive: false,
     maxContextBytes: 4096,
   });
   assert.equal(liveValue(resolved.directory), "/tmp/vault");
   assert.equal(liveValue(resolved.projectSources), false);
   assert.equal(liveValue(resolved.reminders), false);
+  assert.equal(liveValue(resolved.proactive), false);
   assert.equal(liveValue(resolved.maxContextBytes), 4096);
 });
 

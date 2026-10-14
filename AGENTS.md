@@ -64,8 +64,8 @@ npm run build     # tsc -p tsconfig.build.json → lib/
   `react`；控件按官方标记与 `--dsw-*` 主题变量照抄。约束写在 `client/client.js` 头部。
 - **源码要能被 Node 的类型剥离直接运行**（测试直接跑 `.ts`）：不用 `enum`、`namespace`、
   构造器参数属性。`src/engine.ts:118` 有对应的坑记录。
-- **注入文本只在一处生成**：`src/memory.ts`。关键词提醒复用它的 `renderNote`，
-  不另写一份渲染。
+- **注入文本只在一处生成**：`src/memory.ts`。关键词提醒复用它的 `renderNote`，写入
+  提醒复用 `renderWriteReminder`，不另写一份渲染。
 - **模块职责**：`index.ts` 只做宿主接线，`engine.ts` 管状态与刷新，`memory.ts` 管扫描与
   渲染，`keywords.ts` 管索引与匹配，`reminders.ts` 管提醒去重，`config.ts` 管配置与路径。
   加能力先找已有模块，不往入口堆。

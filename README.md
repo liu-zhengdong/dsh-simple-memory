@@ -19,6 +19,9 @@
 - **关键词提醒**：frontmatter `keywords` 里的字面短语命中**用户输入**或**模型文本**时，
   在**本步**追加一条 user 快照消息，给出路径，让模型自己用 `read` 读取全文。
   命中过一次的记忆在本轮不再重复提醒。
+- **写入提醒**：每轮第一步追加一条 user 快照消息，提醒模型把长期成立的结论（用户
+  偏好、项目约定、踩过的坑、要反复查证的事实）主动写进记忆仓库，并列出各仓库的
+  绝对路径；同轮后续步不重复，`proactive: false` 可关。
 - **按需阅读**：上层正文里的 `[[路径]]` 引用由模型自己判断，插件不解析、不校验。
 - **只读**：不写你的记忆目录，不写配置文件；缓存只在内存里。
 
@@ -62,6 +65,7 @@ dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
 | `directory` | `""` | 全局记忆目录，绝对路径或 `~` 开头；留空表示不使用全局来源 |
 | `projectSources` | `true` | 从工作目录向上到 git 根逐层发现 `.memory` |
 | `reminders` | `true` | 按 `keywords` 命中用户输入或模型文本时提醒 |
+| `proactive` | `true` | 每轮提醒一次：把长期成立的结论主动写进记忆仓库 |
 | `maxContextBytes` | `262144` | 单次注入的记忆文本上限（UTF-8 字节，1 KiB–16 MiB） |
 
 配置住在 profile 的 `cordis.patch.yml` 里。**patch 整块替换 `config`，不做深合并**，
@@ -73,6 +77,7 @@ dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
     directory: ~/Obsidian/记忆
     projectSources: true
     reminders: true
+    proactive: true
     maxContextBytes: 262144
 ```
 
@@ -86,11 +91,11 @@ dsh --profile <profile> --dump-config | grep -B2 -A6 dsh-simple-memory
 - **插件页 → dsh-simple-memory** 的配置区；
 - 插件列表里本插件那一行右侧的「配置」。
 
-四个字段都能改，`directory` 旁边有「选择目录…」，点开就是系统目录选择框。保存后写进该
+五个字段都能改，`directory` 旁边有「选择目录…」，点开就是系统目录选择框。保存后写进该
 profile 的 `cordis.patch.yml`（也就是上面那段 YAML），立即生效。
 
-为什么只有这四个字段：宿主设置服务只把 Config 里标成 volatile 的字段暴露出来，本插件
-四个字段都标了。表单控件是按官方外观照抄的——官方明确禁止插件 require
+为什么只有这五个字段：宿主设置服务只把 Config 里标成 volatile 的字段暴露出来，本插件
+五个字段都标了。表单控件是按官方外观照抄的——官方明确禁止插件 require
 `@deepseek-ai/dsh-client-*`（那些包随时会变），所以客户端半侧只声明 `slots` 与 `locale`
 两个服务，目录选择走官方给第三方的 `ctx.uiWorkspace.pickDirectory()`。
 
@@ -144,7 +149,7 @@ keywords:                  # 可选：字面短语，命中就提醒
 ```bash
 pnpm install
 npm run check     # tsc --noEmit
-npm test          # node --test（96 个用例，含假宿主、客户端接线与 volatile 配置契约测试）
+npm test          # node --test（101 个用例，含假宿主、客户端接线与 volatile 配置契约测试）
 npm run build     # tsc -p tsconfig.build.json → lib/
 ```
 

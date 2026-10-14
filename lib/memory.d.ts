@@ -70,6 +70,12 @@ export declare function discoverMemoryDirectories(cwd: string): Promise<Discover
 /** Global first, project shallow to deep. A nested .memory is not covered by a
  * global ancestor: hidden directories are excluded from ordinary discovery. */
 export declare function resolveSources(config: MemoryConfig, discovery: DiscoveryResult, isTrusted: () => boolean): SourceRequest[];
+/**
+ * 每轮一次的写入提醒：催促把长期成立的结论主动沉淀进仓库。
+ * 收录与格式规则不在这里重复——各记忆块块首的「记忆仓库」段已写明，
+ * 这里只点名判据和路径，让提醒保持两三行。
+ */
+export declare function renderWriteReminder(snapshot: Snapshot): string;
 /** /memory preview: injected blocks plus every excluded source with its reason. */
 export declare function previewSnapshot(snapshot: Snapshot): string;
 export declare function readHeader(file: FileHandle, size: bigint): Promise<ReturnType<typeof parseMetadata>>;

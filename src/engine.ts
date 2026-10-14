@@ -16,6 +16,7 @@ import {
   discoverMemoryDirectories,
   MemoryLoader,
   previewSnapshot,
+  renderWriteReminder,
   resolveSources,
   type Snapshot,
 } from "./memory.ts";
@@ -29,6 +30,8 @@ export interface PluginConfig {
   projectSources: boolean;
   /** 是否启用关键词提醒。 */
   reminders: boolean;
+  /** 是否每轮提醒模型主动沉淀记忆。 */
+  proactive: boolean;
   maxContextBytes: number;
 }
 
@@ -89,6 +92,10 @@ interface AgentState {
   text: string;
   /** 最近一次 `remind()` 算出的关键词提醒文本。 */
   reminder: string;
+  /** 最近一次 `remind()` 算出的写入提醒文本。 */
+  writeReminder: string;
+  /** 上一次给过写入提醒的轮次；`-1` 表示还没给过。 */
+  lastTurn: number;
 }
 
 export interface EngineStatus {
@@ -154,31 +161,47 @@ export class MemoryEngine {
   }
 
   /**
-   * 取本步要提供的关键词提醒。
+   * 取本步要提供的两类提醒文本。
    *
    * `claimed` 是本步刚认领、还没来得及写进会话日志的消息（pre-step 的
    * `decision.messages` 原样带过来），所以必须单独看，否则永远慢一步。
+   *
+   * `turn` 用于写入提醒的轮内节流：只在给定轮次的第一次调用给出，
+   * 同轮后续步不再重复。两条文本独立返回，由调用方各自成一条快照消息；
+   * 关键词提醒看 `reminders`，写入提醒看 `proactive`，互不牵连。
    */
   async remind(
     agent: AgentLike | undefined,
     claimed?: readonly MessageLike[],
-  ): Promise<string> {
+    turn?: number,
+  ): Promise<{ reminder: string; writeReminder: string }> {
     const state = this.stateFor(agent);
-    if (!state || !agent) return "";
+    if (!state || !agent) return { reminder: "", writeReminder: "" };
     const run = state.chain.then(async () => {
       state.reminder = "";
+      state.writeReminder = "";
       await this.update(agent, state);
       const config = this.readConfig();
-      if (!config.reminders || !state.snapshot) return;
-      for (const message of claimed ?? []) this.captureMessage(state, message);
-      state.reminder = state.reminders.take(state.snapshot.bytes).text;
+      if (!state.snapshot) return;
+      if (config.reminders) {
+        for (const message of claimed ?? []) this.captureMessage(state, message);
+        state.reminder = state.reminders.take(state.snapshot.bytes).text;
+      }
+      if (
+        config.proactive &&
+        typeof turn === "number" &&
+        turn !== state.lastTurn
+      ) {
+        state.writeReminder = renderWriteReminder(state.snapshot);
+        state.lastTurn = turn;
+      }
     });
     state.chain = run.then(
       () => undefined,
       () => undefined,
     );
     await state.chain;
-    return state.reminder;
+    return { reminder: state.reminder, writeReminder: state.writeReminder };
   }
 
   /** 已经算好的注入文本；组装时同步可读。 */
@@ -236,6 +259,8 @@ export class MemoryEngine {
     state.seen.clear();
     state.text = "";
     state.reminder = "";
+    state.writeReminder = "";
+    state.lastTurn = -1;
   }
 
   private stateFor(agent: AgentLike | undefined): AgentState | undefined {
@@ -253,6 +278,8 @@ export class MemoryEngine {
         chain: Promise.resolve(),
         text: "",
         reminder: "",
+        writeReminder: "",
+        lastTurn: -1,
       };
       this.states.set(key, state);
     }
@@ -270,6 +297,7 @@ export class MemoryEngine {
     const sources = resolveSources(memory, discovery, () => true);
     const snapshot = await this.loader.scan(memory, sources);
     state.snapshot = snapshot;
+    // 关掉 reminders 时索引与提醒对账都跳过；写入提醒只看 snapshot，不受影响。
     if (!config.reminders) {
       state.text = escapeTemplateBraces(snapshot.text);
       return;

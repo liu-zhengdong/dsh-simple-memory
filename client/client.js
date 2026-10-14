@@ -87,6 +87,8 @@ window.__ModuleLoader__.load({
       projectSourcesHint: "从工作目录向上到 git 根，逐层发现 .memory 目录。",
       reminders: "启用关键词提醒",
       remindersHint: "frontmatter 的 keywords 命中时，提醒模型去读那篇记忆。",
+      proactive: "启用写入提醒",
+      proactiveHint: "每轮提醒一次：把长期成立的结论主动写进记忆仓库。",
       maxBytes: "单次注入上限（字节）",
       maxBytesHint: "1024 到 16777216；超预算的整份来源会被排除并在状态栏提示。",
       invalidBytes: "请填 1024 到 16777216 之间的整数。",
@@ -116,6 +118,8 @@ window.__ModuleLoader__.load({
       projectSourcesHint: "Walk from the working directory up to the git root, one .memory per level.",
       reminders: "Keyword reminders",
       remindersHint: "When a frontmatter keyword matches, remind the model to read that note.",
+      proactive: "Proactive write reminders",
+      proactiveHint: "Once per turn, remind the model to store durable conclusions into the memory vault.",
       maxBytes: "Injection budget per turn (bytes)",
       maxBytesHint: "1024 to 16777216. A source over budget is excluded and reported in the status line.",
       invalidBytes: "Enter an integer between 1024 and 16777216.",
@@ -350,6 +354,7 @@ window.__ModuleLoader__.load({
         );
       rows.push(checkbox("projectSources", t("projectSources"), t("projectSourcesHint")));
       rows.push(checkbox("reminders", t("reminders"), t("remindersHint")));
+      rows.push(checkbox("proactive", t("proactive"), t("proactiveHint")));
 
       rows.push(
         h(

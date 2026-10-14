@@ -29,11 +29,13 @@ export declare const Config: Schema<Schemastery.ObjectS<NoInfer<{
     directory: Schema<string, string, "volatile-defined">;
     projectSources: Schema<boolean, boolean, "volatile-defined">;
     reminders: Schema<boolean, boolean, "volatile-defined">;
+    proactive: Schema<boolean, boolean, "volatile-defined">;
     maxContextBytes: Schema<number, number, "volatile-defined">;
 }>>, Schemastery.ObjectT<NoInfer<{
     directory: Schema<string, string, "volatile-defined">;
     projectSources: Schema<boolean, boolean, "volatile-defined">;
     reminders: Schema<boolean, boolean, "volatile-defined">;
+    proactive: Schema<boolean, boolean, "volatile-defined">;
     maxContextBytes: Schema<number, number, "volatile-defined">;
 }>>, "plain">;
 /** runtime context 段名；注入文本的唯一标识。 */

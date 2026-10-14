@@ -7,6 +7,8 @@ export interface PluginConfig {
     projectSources: boolean;
     /** 是否启用关键词提醒。 */
     reminders: boolean;
+    /** 是否每轮提醒模型主动沉淀记忆。 */
+    proactive: boolean;
     maxContextBytes: number;
 }
 /**
@@ -57,12 +59,19 @@ export declare class MemoryEngine {
     /** 后台预热：只为同步的 context provider 准备兜底文本。 */
     warm(agent: AgentLike | undefined): void;
     /**
-     * 取本步要提供的关键词提醒。
+     * 取本步要提供的两类提醒文本。
      *
      * `claimed` 是本步刚认领、还没来得及写进会话日志的消息（pre-step 的
      * `decision.messages` 原样带过来），所以必须单独看，否则永远慢一步。
+     *
+     * `turn` 用于写入提醒的轮内节流：只在给定轮次的第一次调用给出，
+     * 同轮后续步不再重复。两条文本独立返回，由调用方各自成一条快照消息；
+     * 关键词提醒看 `reminders`，写入提醒看 `proactive`，互不牵连。
      */
-    remind(agent: AgentLike | undefined, claimed?: readonly MessageLike[]): Promise<string>;
+    remind(agent: AgentLike | undefined, claimed?: readonly MessageLike[], turn?: number): Promise<{
+        reminder: string;
+        writeReminder: string;
+    }>;
     /** 已经算好的注入文本；组装时同步可读。 */
     cached(agent: AgentLike | undefined): string;
     status(agent: AgentLike | undefined): EngineStatus;
